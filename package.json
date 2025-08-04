@@ -1,0 +1,47 @@
+{
+  "name": "bybit-signal-detector",
+  "version": "1.0.0",
+  "description": "24/7 Bybit signal detector with real-time WebSocket updates, regression channels, Telegram alerts, and web dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "prod": "NODE_ENV=production node server.js",
+    "monitor": "node --expose-gc server.js"
+  },
+  "dependencies": {
+    "canvas": "^2.11.2",
+    "express": "^4.18.2",
+    "node-telegram-bot-api": "^0.64.0",
+    "ws": "^8.14.2"
+  },
+  "keywords": [
+    "bybit",
+    "trading",
+    "signals",
+    "regression",
+    "telegram",
+    "cryptocurrency",
+    "websocket",
+    "real-time",
+    "24/7",
+    "dashboard",
+    "charts",
+    "alerts"
+  ],
+  "engines": {
+    "node": ">=18.20.3",
+    "npm": ">=9.0.0"
+  },
+  "author": "",
+  "license": "MIT",
+  "private": true,
+  "homepage": "http://localhost:3000",
+  "bugs": {
+    "url": "https://github.com/your-username/bybit-signal-detector/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/bybit-signal-detector.git"
+  }
+}
