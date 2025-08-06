@@ -83,10 +83,18 @@
         .message-content {
             line-height: 1.8;
             text-align: center;
+            font-size: 1.2em; /* Increased from default by 2 font sizes */
         }
 
         .message-line {
             margin: 8px 0;
+        }
+
+        .scan-finished-time {
+            margin-top: 10px;
+            font-size: 0.85em;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
         }
 
         .loading {
@@ -224,17 +232,30 @@
                 const messageClass = isScanFinished ? 'message scan-finished' : 'message';
                 const symbolInfo = getSymbolInfo(msg.text);
 
-                return `
-                    <a href="${symbolInfo.url}" target="_blank" class="${messageClass}">
-                        <div class="message-header">
-                            <div class="timestamp">${formatTimestamp(msg.timestamp)}</div>
-                        </div>
-                        ${msg.image ? `<img src="${msg.image}" alt="Chart" class="message-image">` : ''}
-                        <div class="message-content">
-                            ${formatMessageContent(msg.text)}
-                        </div>
-                    </a>
-                `;
+                // For scan finished messages, show timestamp above the message content
+                if (isScanFinished) {
+                    return `
+                        <a href="${symbolInfo.url}" target="_blank" class="${messageClass}">
+                            ${msg.image ? `<img src="${msg.image}" alt="Chart" class="message-image">` : ''}
+                            <div class="message-content">
+                                ${formatMessageContent(msg.text)}
+                                <div class="scan-finished-time">${formatTimestamp(msg.timestamp)}</div>
+                            </div>
+                        </a>
+                    `;
+                } else {
+                    return `
+                        <a href="${symbolInfo.url}" target="_blank" class="${messageClass}">
+                            <div class="message-header">
+                                <div class="timestamp">${formatTimestamp(msg.timestamp)}</div>
+                            </div>
+                            ${msg.image ? `<img src="${msg.image}" alt="Chart" class="message-image">` : ''}
+                            <div class="message-content">
+                                ${formatMessageContent(msg.text)}
+                            </div>
+                        </a>
+                    `;
+                }
             }).join('');
 
             container.innerHTML = messagesHtml;
@@ -267,7 +288,19 @@
 
         function formatMessageContent(text) {
             const lines = text.split('\n');
-            return lines.map(line => 
+
+            // Handle scan finished messages specially
+            if (text.includes('🔍 Scan finished')) {
+                return lines.map((line, index) => {
+                    // Skip empty lines before scan finished
+                    if (line.trim() === '' && lines[index + 1] && lines[index + 1].includes('🔍 Scan finished')) {
+                        return '';
+                    }
+                    return line ? `<div class="message-line">${line}</div>` : '';
+                }).filter(line => line !== '').join('');
+            }
+
+            return lines.map(line =>
                 `<div class="message-line">${line || '&nbsp;'}</div>`
             ).join('');
         }
