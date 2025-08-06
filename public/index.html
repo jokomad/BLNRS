@@ -287,6 +287,101 @@
             return `${day}/${month}/${year} ${hours}:${minutes}`;
         }
 
+        // Touch-to-scroll functionality
+        let isScrollMode = false;
+        let startY = 0;
+        let lastScrollTime = 0;
+        let scrollTimeout = null;
+        let originalHref = '';
+
+        document.addEventListener('touchstart', (e) => {
+            const messageCard = e.target.closest('.message');
+            if (messageCard) {
+                isScrollMode = true;
+                startY = e.touches[0].clientY;
+
+                // Store original href and prevent navigation during scroll
+                originalHref = messageCard.href;
+
+                // Set a timeout to distinguish between tap and scroll
+                scrollTimeout = setTimeout(() => {
+                    // If we're still in scroll mode after 200ms, disable the link
+                    if (isScrollMode && messageCard) {
+                        messageCard.style.pointerEvents = 'none';
+                    }
+                }, 200);
+
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isScrollMode) {
+                const currentY = e.touches[0].clientY;
+                const deltaY = startY - currentY;
+
+                // If we've moved more than 10px, we're scrolling not tapping
+                if (Math.abs(deltaY) > 10) {
+                    clearTimeout(scrollTimeout);
+
+                    // Disable link navigation
+                    const messageCard = e.target.closest('.message');
+                    if (messageCard) {
+                        messageCard.style.pointerEvents = 'none';
+                    }
+                }
+
+                // Throttle scroll events for smooth performance
+                const now = Date.now();
+                if (now - lastScrollTime > 16) { // ~60fps
+                    const container = document.getElementById('messagesContainer');
+                    const scrollAmount = deltaY * 1.5; // Normal scroll sensitivity
+
+                    // Apply scroll with boundaries
+                    const newScrollTop = container.scrollTop + scrollAmount;
+                    const maxScroll = container.scrollHeight - container.clientHeight;
+
+                    // Stop at top/bottom boundaries
+                    container.scrollTop = Math.max(0, Math.min(newScrollTop, maxScroll));
+
+                    startY = currentY;
+                    lastScrollTime = now;
+                }
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('touchend', (e) => {
+            if (isScrollMode) {
+                clearTimeout(scrollTimeout);
+
+                // Re-enable link navigation after a short delay
+                setTimeout(() => {
+                    const messageCards = document.querySelectorAll('.message');
+                    messageCards.forEach(card => {
+                        card.style.pointerEvents = 'auto';
+                    });
+                }, 100);
+
+                isScrollMode = false;
+            }
+        });
+
+        // Handle touch cancel (when touch is interrupted)
+        document.addEventListener('touchcancel', (e) => {
+            if (isScrollMode) {
+                clearTimeout(scrollTimeout);
+
+                // Re-enable link navigation
+                const messageCards = document.querySelectorAll('.message');
+                messageCards.forEach(card => {
+                    card.style.pointerEvents = 'auto';
+                });
+
+                isScrollMode = false;
+            }
+        });
+
         // Load initial messages and connect WebSocket
         loadMessages();
         connectWebSocket();
