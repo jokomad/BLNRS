@@ -287,27 +287,28 @@
             return `${day}/${month}/${year} ${hours}:${minutes}`;
         }
 
-        // Touch-to-scroll functionality
+        // Mouse drag-to-scroll functionality (for RDP)
         let isScrollMode = false;
         let startY = 0;
         let lastScrollTime = 0;
         let scrollTimeout = null;
-        let originalHref = '';
+        let isDragging = false;
 
-        document.addEventListener('touchstart', (e) => {
+        document.addEventListener('mousedown', (e) => {
             const messageCard = e.target.closest('.message');
-            if (messageCard) {
+            if (messageCard && e.button === 0) { // Left mouse button only
                 isScrollMode = true;
-                startY = e.touches[0].clientY;
+                isDragging = false;
+                startY = e.clientY;
 
-                // Store original href and prevent navigation during scroll
-                originalHref = messageCard.href;
-
-                // Set a timeout to distinguish between tap and scroll
+                // Set a timeout to distinguish between click and drag
                 scrollTimeout = setTimeout(() => {
-                    // If we're still in scroll mode after 200ms, disable the link
-                    if (isScrollMode && messageCard) {
+                    // If we're still holding after 200ms, prepare for scroll mode
+                    if (isScrollMode) {
+                        isDragging = true;
                         messageCard.style.pointerEvents = 'none';
+                        document.body.style.userSelect = 'none'; // Prevent text selection
+                        document.body.style.cursor = 'grabbing';
                     }
                 }, 200);
 
@@ -315,70 +316,91 @@
             }
         });
 
-        document.addEventListener('touchmove', (e) => {
+        document.addEventListener('mousemove', (e) => {
             if (isScrollMode) {
-                const currentY = e.touches[0].clientY;
+                const currentY = e.clientY;
                 const deltaY = startY - currentY;
 
-                // If we've moved more than 10px, we're scrolling not tapping
+                // If we've moved more than 10px, we're dragging not clicking
                 if (Math.abs(deltaY) > 10) {
                     clearTimeout(scrollTimeout);
+                    isDragging = true;
 
-                    // Disable link navigation
+                    // Disable link navigation and show drag cursor
                     const messageCard = e.target.closest('.message');
                     if (messageCard) {
                         messageCard.style.pointerEvents = 'none';
                     }
+                    document.body.style.userSelect = 'none';
+                    document.body.style.cursor = 'grabbing';
                 }
 
-                // Throttle scroll events for smooth performance
-                const now = Date.now();
-                if (now - lastScrollTime > 16) { // ~60fps
-                    const container = document.getElementById('messagesContainer');
-                    const scrollAmount = deltaY * 1.5; // Normal scroll sensitivity
+                // Only scroll if we're in drag mode
+                if (isDragging) {
+                    // Throttle scroll events for smooth performance
+                    const now = Date.now();
+                    if (now - lastScrollTime > 16) { // ~60fps
+                        const container = document.getElementById('messagesContainer');
+                        const scrollAmount = deltaY * 1.5; // Normal scroll sensitivity
 
-                    // Apply scroll with boundaries
-                    const newScrollTop = container.scrollTop + scrollAmount;
-                    const maxScroll = container.scrollHeight - container.clientHeight;
+                        // Apply scroll with boundaries
+                        const newScrollTop = container.scrollTop + scrollAmount;
+                        const maxScroll = container.scrollHeight - container.clientHeight;
 
-                    // Stop at top/bottom boundaries
-                    container.scrollTop = Math.max(0, Math.min(newScrollTop, maxScroll));
+                        // Stop at top/bottom boundaries
+                        container.scrollTop = Math.max(0, Math.min(newScrollTop, maxScroll));
 
-                    startY = currentY;
-                    lastScrollTime = now;
+                        startY = currentY;
+                        lastScrollTime = now;
+                    }
                 }
-                e.preventDefault();
+
+                if (isDragging) {
+                    e.preventDefault();
+                }
             }
         });
 
-        document.addEventListener('touchend', (e) => {
+        document.addEventListener('mouseup', (e) => {
             if (isScrollMode) {
                 clearTimeout(scrollTimeout);
 
-                // Re-enable link navigation after a short delay
+                // If we were dragging, prevent the click event
+                if (isDragging) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+
+                // Re-enable link navigation and restore cursor
                 setTimeout(() => {
                     const messageCards = document.querySelectorAll('.message');
                     messageCards.forEach(card => {
                         card.style.pointerEvents = 'auto';
                     });
-                }, 100);
+                    document.body.style.userSelect = 'auto';
+                    document.body.style.cursor = 'default';
+                }, isDragging ? 100 : 0);
 
                 isScrollMode = false;
+                isDragging = false;
             }
         });
 
-        // Handle touch cancel (when touch is interrupted)
-        document.addEventListener('touchcancel', (e) => {
+        // Handle mouse leave (when mouse leaves the window)
+        document.addEventListener('mouseleave', (e) => {
             if (isScrollMode) {
                 clearTimeout(scrollTimeout);
 
-                // Re-enable link navigation
+                // Re-enable link navigation and restore cursor
                 const messageCards = document.querySelectorAll('.message');
                 messageCards.forEach(card => {
                     card.style.pointerEvents = 'auto';
                 });
+                document.body.style.userSelect = 'auto';
+                document.body.style.cursor = 'default';
 
                 isScrollMode = false;
+                isDragging = false;
             }
         });
 
