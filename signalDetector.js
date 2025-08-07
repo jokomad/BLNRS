@@ -1,13 +1,14 @@
 const ChartGenerator = require('./chartGenerator');
 
 class SignalDetector {
-    constructor(api, telegram, tickers, telegramGroupId, messageCallback = null) {
+    constructor(api, telegram, tickers, telegramGroupId, messageCallback = null, minGainThreshold = 4.0) {
         this.api = api;
         this.telegram = telegram;
         this.tickers = tickers;
         this.telegramGroupId = telegramGroupId;
         this.lastTelegramSent = null;
         this.messageCallback = messageCallback; // Callback to store messages
+        this.minGainThreshold = minGainThreshold; // Minimum potential gain threshold
     }
 
     calculateLinearRegression(values) {
@@ -230,8 +231,8 @@ class SignalDetector {
 
         // Send alerts immediately (no delisting check needed since already filtered)
         if (signals.length > 0) {
-            // Calculate potential gain for each signal and sort from lowest to highest
-            console.log('Calculating potential gains for sorting...');
+            // Calculate potential gain for each signal and filter by minimum threshold
+            console.log(`Calculating potential gains and filtering by minimum ${this.minGainThreshold}% threshold...`);
             const signalsWithGains = signals.map(signal => {
                 const chartGen = new ChartGenerator();
                 const channelWidth = parseFloat(chartGen.calculateChannelWidth(signal.candles));
@@ -239,20 +240,24 @@ class SignalDetector {
                     ...signal,
                     potentialGain: channelWidth
                 };
-            });
+            }).filter(signal => signal.potentialGain >= this.minGainThreshold);
 
-            // Sort by potential gain (lowest to highest)
-            signalsWithGains.sort((a, b) => a.potentialGain - b.potentialGain);
+            console.log(`Filtered ${signals.length - signalsWithGains.length} signals below ${this.minGainThreshold}% threshold`);
 
-            console.log('Sending alerts in order from lowest to highest potential gain:');
-            signalsWithGains.forEach(signal => {
-                console.log(`  ${signal.symbol}: ${signal.potentialGain}%`);
-            });
+            // Check if we have any signals after filtering
+            if (signalsWithGains.length > 0) {
+                // Sort by potential gain (lowest to highest)
+                signalsWithGains.sort((a, b) => a.potentialGain - b.potentialGain);
 
-            let alertsSent = 0;
-            const totalSignals = signalsWithGains.length;
+                console.log('Sending alerts in order from lowest to highest potential gain:');
+                signalsWithGains.forEach(signal => {
+                    console.log(`  ${signal.symbol}: ${signal.potentialGain}%`);
+                });
 
-            for (let i = 0; i < signalsWithGains.length; i++) {
+                let alertsSent = 0;
+                const totalSignals = signalsWithGains.length;
+
+                for (let i = 0; i < signalsWithGains.length; i++) {
                 const signal = signalsWithGains[i];
                 const isLastSignal = (i === totalSignals - 1);
 
@@ -265,8 +270,30 @@ class SignalDetector {
                 );
                 alertsSent++;
             }
-            console.log(`📨 Sent ${alertsSent} alerts via Telegram (highest gain: ${signalsWithGains[signalsWithGains.length - 1].symbol} at ${signalsWithGains[signalsWithGains.length - 1].potentialGain}%)`);
-            console.log('📨 Scan finished message included with last signal');
+                console.log(`📨 Sent ${alertsSent} alerts via Telegram (highest gain: ${signalsWithGains[signalsWithGains.length - 1].symbol} at ${signalsWithGains[signalsWithGains.length - 1].potentialGain}%)`);
+                console.log('📨 Scan finished message included with last signal');
+            } else {
+                console.log(`No signals meet the minimum ${this.minGainThreshold}% gain threshold.`);
+
+                // Send scan finished message even when no signals meet threshold
+                const chartGen = new ChartGenerator();
+                const chartBuffer = await chartGen.generateScanFinishedChart();
+
+                const message = `🔍 Scan finished\n\nNo crossing signals found above ${this.minGainThreshold}% threshold`;
+
+                try {
+                    await this.telegram.sendPhoto(this.telegramGroupId, chartBuffer, {
+                        caption: message,
+                        parse_mode: 'Markdown'
+                    });
+
+                    if (this.messageCallback) {
+                        this.messageCallback(message, chartBuffer);
+                    }
+                } catch (error) {
+                    console.error(`Error sending scan finished alert: ${error.message}`);
+                }
+            }
         } else {
             console.log('No crossing signals found in this scan.');
 

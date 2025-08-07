@@ -18,6 +18,9 @@ const BYBIT_TICKERS_URL = 'https://api.bybit.com/v5/market/tickers?category=line
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '7670597940:AAFa701w9UEKrp5TMO2fhJJdPIQvNlbgt4o';
 const TELEGRAM_GROUP_ID = process.env.TELEGRAM_GROUP_ID || '-1002448457816';
 
+// Signal filtering configuration
+const MIN_GAIN_THRESHOLD = parseFloat(process.env.MIN_GAIN_THRESHOLD) || 4.0;
+
 // Initialize Telegram bot
 const telegram = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: false });
 
@@ -260,7 +263,8 @@ app.get('/status', (req, res) => {
         stats: {
             storedMessages: telegramMessages.length,
             wsClients: wsClients.size,
-            lastMessage: telegramMessages.length > 0 ? telegramMessages[0].timestamp : null
+            lastMessage: telegramMessages.length > 0 ? telegramMessages[0].timestamp : null,
+            minGainThreshold: MIN_GAIN_THRESHOLD
         }
     });
 });
@@ -370,7 +374,7 @@ class TickerScanner {
                 console.log(`After filtering delisting: ${this.filteredPairs.length} pairs remaining`);
                 
                 // Create signal detector with current non-delisting tickers data
-                this.signalDetector = new SignalDetector(this.api, this.telegram, nonDelistingPairs, TELEGRAM_GROUP_ID, (text, imageBuffer) => addTelegramMessage(text, imageBuffer));
+                this.signalDetector = new SignalDetector(this.api, this.telegram, nonDelistingPairs, TELEGRAM_GROUP_ID, (text, imageBuffer) => addTelegramMessage(text, imageBuffer), MIN_GAIN_THRESHOLD);
 
                 // Fetch candles and check for signals
                 console.log('Fetching candles for all pairs...');
@@ -495,6 +499,7 @@ wss.on('connection', (ws) => {
 
 console.log('🔌 WebSocket server initialized');
 console.log('🛡️ 24/7 memory management active - cleanup every 10 minutes');
+console.log(`🎯 Minimum gain threshold: ${MIN_GAIN_THRESHOLD}% (configurable via MIN_GAIN_THRESHOLD env var)`);
 
 // Periodic cleanup and monitoring (every 10 minutes)
 setInterval(() => {

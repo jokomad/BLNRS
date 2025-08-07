@@ -1,7 +1,7 @@
 {
   "name": "bybit-signal-detector",
   "version": "1.0.0",
-  "description": "24/7 Bybit signal detector with real-time WebSocket updates, regression channels, Telegram alerts, and web dashboard",
+  "description": "24/7 Bybit signal detector with configurable gain filtering, real-time WebSocket updates, regression channels, Telegram alerts, and web dashboard",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -43,5 +43,14 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/your-username/bybit-signal-detector.git"
+  },
+  "config": {
+    "environmentVariables": {
+      "TELEGRAM_BOT_TOKEN": "Your Telegram bot token",
+      "TELEGRAM_GROUP_ID": "Your Telegram group/channel ID",
+      "MIN_GAIN_THRESHOLD": "Minimum potential gain percentage (default: 4.0)",
+      "NODE_ENV": "Environment mode (production/development)",
+      "PORT": "Server port (default: 3000, Koyeb uses 8000)"
+    }
   }
 }
