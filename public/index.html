@@ -75,7 +75,7 @@
         }
 
         .timestamp {
-            font-size: 0.85em;
+            font-size: 1.4em; /* Made same as message content and larger */
             color: rgba(255, 255, 255, 0.6);
             text-align: center;
         }
@@ -83,7 +83,7 @@
         .message-content {
             line-height: 1.8;
             text-align: center;
-            font-size: 1.2em; /* Increased from default by 2 font sizes */
+            font-size: 1.4em; /* Increased by 2 more font sizes */
         }
 
         .message-line {
@@ -92,7 +92,7 @@
 
         .scan-finished-time {
             margin-top: 10px;
-            font-size: 0.85em;
+            font-size: 1.4em; /* Made same as message content and larger */
             color: rgba(255, 255, 255, 0.6);
             text-align: center;
         }
@@ -115,6 +115,34 @@
         .scan-finished {
             border-left-color: #2196F3;
             background: rgba(33, 150, 243, 0.1);
+        }
+
+        .reload-button {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            display: block;
+        }
+
+        .reload-button:hover {
+            background: linear-gradient(135deg, #45a049, #4CAF50);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .reload-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
 
         .no-messages {
@@ -163,6 +191,10 @@
         <div class="messages-container" id="messagesContainer">
             <div class="loading">🔄 Loading messages...</div>
         </div>
+
+        <button class="reload-button" onclick="window.location.reload()">
+            🔄 Reload Page
+        </button>
     </div>
 
     <script>
